@@ -155,7 +155,15 @@ app.patch('/api/inventory/:id/price', (req, res) => {
 app.post('/api/ai', (req, res) => {
   if (!API_KEY) return res.status(503).json({ error: 'ANTHROPIC_API_KEY not configured on server' });
 
-  const body = JSON.stringify(req.body);
+  // Strip the web search tool from the request body and handle it server-side
+  const payload = {
+    model: req.body.model || 'claude-sonnet-4-20250514',
+    max_tokens: req.body.max_tokens || 1000,
+    tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+    messages: req.body.messages,
+  };
+
+  const body = JSON.stringify(payload);
   const options = {
     hostname: 'api.anthropic.com',
     path: '/v1/messages',
@@ -165,13 +173,16 @@ app.post('/api/ai', (req, res) => {
       'Content-Length': Buffer.byteLength(body),
       'x-api-key': API_KEY,
       'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'web-search-2025-03-05',
     },
   };
 
   const proxy = https.request(options, (r) => {
-    res.writeHead(r.statusCode, { 'Content-Type': 'application/json' });
-    r.pipe(res);
+    let data = '';
+    r.on('data', chunk => data += chunk);
+    r.on('end', () => {
+      res.writeHead(r.statusCode, { 'Content-Type': 'application/json' });
+      res.end(data);
+    });
   });
   proxy.on('error', (e) => res.status(500).json({ error: e.message }));
   proxy.write(body);
