@@ -1,0 +1,12 @@
+{
+  "name": "tcg-tracker",
+  "version": "1.0.2",
+  "description": "Shared Pokémon TCG Inventory Tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
